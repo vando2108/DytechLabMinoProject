@@ -1,7 +1,7 @@
 # HTTP server
 1. You can config the number of threads and number of tasks in threadpool.h file.
 2. You can config the server address and port in main.cpp file.
-3. To run the server, you need to run execute file in the "Bin" folder or you can rebuild by run "make" command.
+3. To run the server, you need to run "execute" file in the "Bin" folder or you can rebuild by run "make" command.
 4. This server has 3 URL you can access:
 - "127.0.0.1:8080" to get index.html file.
 - "127.0.0.1:8080/login" to get login page.
