@@ -7,4 +7,3 @@
 - "127.0.0.1:8080/register" to get register page.
 - The other URL will get 404-page not found error
 4. The login and register services just are the basic services, I don't use any database or hashing technical in these services.
-5. 
