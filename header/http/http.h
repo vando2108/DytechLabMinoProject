@@ -46,6 +46,7 @@ namespace Http {
       virtual const std::string &head_content(const std::string &) = 0;
       virtual const size_t body_len() = 0;
       virtual const char *body() = 0;
+      virtual std::string PostFormValue(const std::string &) = 0;
   };
 
   class IHttpRespose {
@@ -76,17 +77,20 @@ namespace Http {
       const size_t body_len();
       const char *body();
       const char *strerror();
+      std::string PostFormValue(const std::string &);
   
     private:
       inline void set_strerror(const char *str);
       int parse_startline(const char *start, const char *end);
       int parse_headers(const char *start, const char *end);
       int parse_body(const char *start, const char *end);
-      
+      int parse_formvalue(const std::string &);
+
     private:
       std::string m_strerr;
   
       std::string m_startline;
+      std::map<std::string, std::string> m_formvalue;
       std::string m_method;
       std::string m_url;
       std::string m_version;

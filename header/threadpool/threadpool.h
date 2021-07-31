@@ -27,8 +27,8 @@ namespace ThreadPool {
   class CThreadPool: public IThreadPool {
     public:
       enum Limit {
-	THREADNUM_MAX = 64,
-	TASKNUM_MAX = 2018,
+	THREADNUM_MAX = 10000,
+	TASKNUM_MAX = 100000,
       };
 
       typedef void *(threadproc_t)(void *);
@@ -74,7 +74,7 @@ namespace ThreadPool {
 		
     private:
       CThreadPoolProxy() { 
-      	m_ithreadpool = new CThreadPool(4, 1024);
+      	m_ithreadpool = new CThreadPool(1000, 100000);
       }
 
       ~CThreadPoolProxy() { 

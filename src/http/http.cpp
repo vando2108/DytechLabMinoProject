@@ -101,8 +101,9 @@ namespace Http {
       return -1;
     }
 
-    if (parse_headers(remainMsg, endMsg) < 0) {
-      set_strerror("parse headers error");
+    int temp = parse_headers(remainMsg, endMsg);
+    if (temp < 0) {
+      set_strerror("parse header error");
       return -1;
     }
 
@@ -111,6 +112,43 @@ namespace Http {
       set_strerror("parse body error");
     }
     
+    if (m_method == "POST") {
+      parse_formvalue(std::string(m_body));
+    }
+    
+    return 0;
+  }
+
+  std::string CHttpRequest::PostFormValue(const std::string &key) {
+    static std::string nonstring = "";
+    auto it = m_formvalue.find(key);
+
+    if (it == m_formvalue.end()) {
+      return nonstring;
+    }
+    return m_formvalue[key];
+  }
+
+  int CHttpRequest::parse_formvalue(const std::string &formvalue) {
+    std::string temp = "";
+    std::string key;
+    for (auto c:formvalue) {
+      if (c == ' ' || c == '-') break;
+      if (c != '&' && c != '=') {
+	temp += c;
+	continue;
+      }
+      if (c == '=') {
+	key = temp;
+	temp = "";
+      }
+      if (c == '&') {
+	m_formvalue[key] = temp;
+	temp = "";
+	key = "";
+      }
+    }
+    m_formvalue[key] = temp;
     return 0;
   }
 
@@ -203,6 +241,12 @@ namespace Http {
     
     while (true) {
       const char *line_end = find_line(line_start, end);
+      if (m_method == "POST") {
+	if(line_end[0] == 'e' && line_end[1] == 'm' && line_end[2] == 'a' && line_end[3] == 'i' && line_end[4] == 'l') {
+	  return 2;
+	}
+      }
+
       if (line_end == NULL)
 	return -1;
       else if (line_end == end) break;
@@ -214,6 +258,7 @@ namespace Http {
 
       const char *attstart = line_start + sumlen + 0x01;
       attstart = find_content(attstart, line_end, '\r',contlen, sumlen);
+
       if (attstart == NULL)
 	return -1;
       attr = std::string(attstart, contlen);

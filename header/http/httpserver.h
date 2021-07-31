@@ -62,6 +62,21 @@ namespace Http {
       const std::string m_addr;
       Socket::CStreamServer m_server;
   };
+
+  class CAuthen {    
+    public: 
+      static CAuthen *instance();
+
+      bool login(std::string username, std::string password);
+      bool  addNewuser(std::string username, std::string password);  
+
+    private:
+      CAuthen();
+      ~CAuthen();
+
+      std::map<std::string, std::string> m_usersList; //key is username, value is password
+      Pthread::CMutex m_authen_mutex;
+  };
 }
 
 #endif

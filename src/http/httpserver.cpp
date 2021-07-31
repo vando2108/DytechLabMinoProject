@@ -9,11 +9,49 @@
 #include "../../header/http/httpserver.h"
 
 namespace Http {
+  CAuthen::CAuthen() {}
+  CAuthen::~CAuthen() {}
+
+  CAuthen *CAuthen::instance() {
+    static CAuthen *authen = NULL;
+    if (authen == NULL) 
+      authen = new CAuthen();
+    return authen;
+  }
+
+  bool CAuthen::login(std::string username, std::string password) {
+    Pthread::CGuard guard(m_authen_mutex);
+    
+    auto it = m_usersList.find(username);
+    if (it == m_usersList.end())
+      return false;
+
+    return (it->second == password);
+  }
+
+  bool CAuthen::addNewuser(std::string username, std::string password) {
+    Pthread::CGuard guard(m_authen_mutex);
+
+    auto it = m_usersList.find(username);
+    if (it != m_usersList.end())
+      return false;;
+
+    m_usersList[username] = password;
+
+    return true;
+  }
   std::string http_path_handle(const std::string &dname, const std::string &bname) {
     std::string filepath(HTTP_ROOT);
+
     if (bname == "login") {
       filepath += HTTP_SLASH;
       filepath += "login.html";
+      return filepath;
+    }
+
+    if (bname == "register") {
+      filepath += HTTP_SLASH;
+      filepath += "register.html";
       return filepath;
     }
 
@@ -120,15 +158,65 @@ namespace Http {
     std::string filepath = http_path_handle(dname, bname);
     if (method == "GET") {
       std::string extension = extention_name(filepath);
+      bool notfound = false;
       if (extension.empty() || access(filepath.c_str(), R_OK) < 0) {
-	errsys("access %s error\n", filepath.c_str());
+	filepath = "templates/not_found.html";
+	extension = "html";
+	notfound = true;
+      }
+
+      struct stat filestat;
+      stat(filepath.c_str(), &filestat);
+      const size_t filesize = filestat.st_size;
+
+      char *fBuff = new char[filesize];
+      assert(fBuff != NULL);
+
+      FILE *fp = fopen(filepath.c_str(), "rb");
+      if (fp == NULL || fread(fBuff, filesize, 1, fp) != 0x01) {
+	delete [] fBuff;
 
 	respose->set_version(HTTP_VERSION);
-	respose->set_status("404", "Not Found");
+	respose->set_status("500", "Internal Server Error");
 	respose->add_head(HTTP_HEAD_CONNECTION, "close");
 	return respose;
       }
 
+      fclose(fp);
+
+      char sfilesize[16] = {0x00};
+      snprintf(sfilesize, sizeof(sfilesize), "%ld", filesize);
+
+      respose->set_version(HTTP_VERSION);
+      if (notfound == true) {
+	respose->set_status("404", "Not found");
+      }
+      else respose->set_status("200", "OK");
+      respose->add_head(HTTP_HEAD_CONTENT_TYPE, http_content_type(extension));
+      respose->add_head(HTTP_HEAD_CONTENT_LEN, sfilesize);
+      respose->add_head(HTTP_HEAD_CONNECTION, "close");
+      respose->set_body(fBuff, filesize);
+      delete [] fBuff;
+    }
+    else if (method == "POST") {
+      std::string email = request.PostFormValue("email");
+      std::string password = request.PostFormValue("password");
+      
+      auto instance = CAuthen::instance();
+      if (bname == "login") {
+        if (instance->login(email, password))
+	  filepath = "templates/login_success.html";
+        else 
+	 filepath = "templates/login_unsuccess.html";
+      } 
+      else if (bname == "register") {
+	if (instance->addNewuser(email, password)) 
+	  filepath = "templates/register_success.html";
+	else 
+	  filepath = "templates/register_unsuccess.html";
+      }
+
+      std::string extension = extention_name(filepath);
       struct stat filestat;
       stat(filepath.c_str(), &filestat);
       const size_t filesize = filestat.st_size;
